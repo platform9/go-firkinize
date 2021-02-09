@@ -1,7 +1,7 @@
 package main
 
 import (
-  "go-firkinize/cmd"
+  "github.com/platform9/go-firkinize/cmd"
   "os"
 )
 

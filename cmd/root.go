@@ -3,7 +3,7 @@
 package cmd
 
 import (
-	"go-firkinize/pkg/cfg"
+	"github.com/platform9/go-firkinize/pkg/cfg"
 	"os"
 	"go.uber.org/zap"
 	"github.com/spf13/cobra"
@@ -12,14 +12,14 @@ import (
 var (
 	// Consul server address
 	consulHostPort string
-	
+
 	// Consul server security token
 	consulToken string
 
 	// Consul scheme
 	consulScheme string
 
-	// Customer ID 
+	// Customer ID
 	customerID string
 
 	// regionID (if the service is region specific)
@@ -33,7 +33,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "firkinize",
 		Short: "A utility to get/set various configuration to Platform9 config store",
-		Long: `A simple utility that hides the complexity associated with Platform9 
+		Long: `A simple utility that hides the complexity associated with Platform9
 		config store i.e. consul/vault as of today.`,
 		PersistentPreRunE: func (cmd *cobra.Command, args []string) error {
 			var err error
@@ -63,7 +63,7 @@ func setupLogs() {
 	if debugLog {
 		config = zap.NewDevelopmentConfig()
 	} else {
-		config = zap.NewProductionConfig()				
+		config = zap.NewProductionConfig()
 	}
 	config.OutputPaths = []string{"stderr"}
 	logger, _ := config.Build()
