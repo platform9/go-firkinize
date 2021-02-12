@@ -86,6 +86,6 @@ Self explanatory
 
 ```
 ./go-firkinize create-db --service-name hagrid
-{"level":"info","ts":1612943409.0324764,"caller":"cfg/cfgmgr.go:202","msg":"Created DB successfully"}
-{"level":"info","ts":1612943409.0376244,"caller":"cfg/cfgmgr.go:225","msg":"Granted all privileges to DB"}
+{"level":"info","ts":1612943409.0324764,"caller":"cfg/cfgmgr.go:202","msg":"Created DB 'hagrid' successfully"}
+{"level":"info","ts":1612943409.0376244,"caller":"cfg/cfgmgr.go:225","msg":"Granted all privileges to DB hagrid"}
 ```

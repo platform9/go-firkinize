@@ -163,39 +163,49 @@ func (c * CfgMgr) getRandomPassword() string {
     return string(out)
 }
 
-func (c *CfgMgr) CreateDB(serviceName string) error {
+func (c *CfgMgr) CreateDB(serviceName, userName string) error {
     zap.L().Debug("Creating DB for serviceName ", zap.String("serviceName", serviceName))
     dbserver, err := c.getValue(fmt.Sprintf("%s/keystone/dbserver_key", c.CustomerKeyPrefix))
     if err != nil {
+    	zap.L().Error("Cannot get dbserver_key from consul store", zap.Error(err))
         return err
     }
     host, err := c.getValue(fmt.Sprintf("%s/host", dbserver))
     if err != nil {
+    	zap.L().Error("Cannot get host key from consul store", zap.Error(err))
         return err
     }
     port, err := c.getValue(fmt.Sprintf("%s/port", dbserver))
     if err != nil {
+    	zap.L().Error("Cannot get port key from consul store", zap.Error(err))
         return err
     }
     adminUser, err := c.getValue(fmt.Sprintf("%s/admin_user", dbserver))
     if err != nil {
+    	zap.L().Error("Cannot get admin_user key from consul store", zap.Error(err))
         return err
     }
     adminPass, err := c.getValue(fmt.Sprintf("%s/admin_pass", dbserver))
     if err != nil {
+    	zap.L().Error("Cannot get admin_pass key from consul store", zap.Error(err))
         return err
+    }
+    dbName, err := c.getValue(fmt.Sprintf("%s/%s/db/name", c.CustomerKeyPrefix, serviceName))
+    if err == nil {
+    	zap.L().Info(fmt.Sprintf("Database %s already exists", dbName))
+    	return nil
     }
     dbObject, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/", adminUser, adminPass, host, port))
     if err != nil {
         zap.L().Error("Can't connect to MySQL")
         return err
     }
-    _, err = dbObject.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", serviceName))
+    _, err = dbObject.Exec(fmt.Sprintf("CREATE DATABASE %s", serviceName))
     if err != nil {
-        zap.L().Error("Error while creating database")
+        zap.L().Error("Error while creating database", zap.Error(err))
         return err
     }
-    zap.L().Info("Created DB successfully")
+    zap.L().Info(fmt.Sprintf("Created DB '%s' successfully", serviceName))
     rows, err := dbObject.Query("SELECT @@hostname")
     if err != nil {
         zap.L().Error("Error while getting hostname")
@@ -210,19 +220,19 @@ func (c *CfgMgr) CreateDB(serviceName string) error {
     hosts := []string{"localhost", "%", hostname}
     for _, host := range hosts {
         query := fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s' IDENTIFIED BY '%s'",
-                             serviceName, serviceName, host, dbPassword)
+                             serviceName, userName, host, dbPassword)
         _, err = dbObject.Exec(query)
         if err != nil {
             zap.L().Error("Error while granting permission to host")
             return err
         }
     }
-    zap.L().Info("Granted all privileges to DB")
+    zap.L().Info(fmt.Sprintf("Granted all privileges to DB %s", serviceName))
     dbPrefix := fmt.Sprintf("%s/%s/db", c.CustomerKeyPrefix, serviceName)
     ops := consul.KVTxnOps{
         &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/name", dbPrefix), Value: []byte(serviceName)},
         &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/password", dbPrefix), Value: []byte(dbPassword)},
-        &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/user", dbPrefix), Value: []byte(serviceName)},
+        &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/user", dbPrefix), Value: []byte(userName)},
         &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/host", dbPrefix), Value: []byte(host)},
         &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/port", dbPrefix), Value: []byte(port)},
     }

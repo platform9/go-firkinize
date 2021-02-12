@@ -74,13 +74,13 @@ func setupLogs() {
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&debugLog, "debug", false,"Enable debug logging")
 	rootCmd.PersistentFlags().StringVar(&consulHostPort, "consul-host-port", os.Getenv("CONFIG_HOST_AND_PORT"), "Where to connect to consul server")
-	rootCmd.MarkFlagRequired("cosul-host-port")
+	rootCmd.MarkPersistentFlagRequired("consul-host-port")
 	rootCmd.PersistentFlags().StringVar(&consulToken, "consul-token", os.Getenv("CONSUL_HTTP_TOKEN"), "Security token to talk to consul server")
-	rootCmd.MarkFlagRequired("cosul-token")
+	rootCmd.MarkPersistentFlagRequired("consul-token")
 	rootCmd.PersistentFlags().StringVar(&consulScheme, "consul-scheme", os.Getenv("CONFIG_SCHEME"), "Consul API scheme can be http/https/jrpc")
-	rootCmd.MarkFlagRequired("cosul-scheme")
+	rootCmd.MarkPersistentFlagRequired("consul-scheme")
 	rootCmd.PersistentFlags().StringVar(&customerID, "customer-id", os.Getenv("CUSTOMER_ID"), "ID of the customer under which it is operating")
-	rootCmd.MarkFlagRequired("customer-id")
+	rootCmd.MarkPersistentFlagRequired("customer-id")
 	rootCmd.PersistentFlags().StringVar(&regionID, "region-id", os.Getenv("REGION_ID"), "ID of the region under which it is operating")
 }
 
