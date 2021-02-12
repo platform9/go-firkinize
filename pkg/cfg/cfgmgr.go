@@ -167,33 +167,33 @@ func (c *CfgMgr) CreateDB(serviceName, userName string) error {
     zap.L().Debug("Creating DB for serviceName ", zap.String("serviceName", serviceName))
     dbserver, err := c.getValue(fmt.Sprintf("%s/keystone/dbserver_key", c.CustomerKeyPrefix))
     if err != nil {
-    	zap.L().Error("Cannot get dbserver_key from consul store", zap.Error(err))
+        zap.L().Error("Cannot get dbserver_key from consul store", zap.Error(err))
         return err
     }
     host, err := c.getValue(fmt.Sprintf("%s/host", dbserver))
     if err != nil {
-    	zap.L().Error("Cannot get host key from consul store", zap.Error(err))
+        zap.L().Error("Cannot get host key from consul store", zap.Error(err))
         return err
     }
     port, err := c.getValue(fmt.Sprintf("%s/port", dbserver))
     if err != nil {
-    	zap.L().Error("Cannot get port key from consul store", zap.Error(err))
+        zap.L().Error("Cannot get port key from consul store", zap.Error(err))
         return err
     }
     adminUser, err := c.getValue(fmt.Sprintf("%s/admin_user", dbserver))
     if err != nil {
-    	zap.L().Error("Cannot get admin_user key from consul store", zap.Error(err))
+        zap.L().Error("Cannot get admin_user key from consul store", zap.Error(err))
         return err
     }
     adminPass, err := c.getValue(fmt.Sprintf("%s/admin_pass", dbserver))
     if err != nil {
-    	zap.L().Error("Cannot get admin_pass key from consul store", zap.Error(err))
+        zap.L().Error("Cannot get admin_pass key from consul store", zap.Error(err))
         return err
     }
     dbName, err := c.getValue(fmt.Sprintf("%s/%s/db/name", c.CustomerKeyPrefix, serviceName))
     if err == nil {
-    	zap.L().Info(fmt.Sprintf("Database %s already exists", dbName))
-    	return nil
+        zap.L().Info(fmt.Sprintf("Database %s already exists", dbName))
+        return nil
     }
     dbObject, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/", adminUser, adminPass, host, port))
     if err != nil {
