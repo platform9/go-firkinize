@@ -170,13 +170,9 @@ func (c *CfgMgr) CreateDB(serviceName, userName string) (updateConsul bool, err 
     if err != nil {
         return false, err
     }
-    _, err = dbObject.Exec(fmt.Sprintf("SHOW DATABASES LIKE '%s'", serviceName))
-    if err == nil {
-        zap.L().Info(fmt.Sprintf("Database %s already exists", serviceName))
-        return false, nil
-    }
+
     zap.L().Debug("Creating DB for serviceName ", zap.String("serviceName", serviceName))
-    _, err = dbObject.Exec(fmt.Sprintf("CREATE DATABASE %s", serviceName))
+    _, err = dbObject.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", serviceName))
     if err != nil {
         zap.L().Error("Error while creating database", zap.Error(err))
         return false, err
