@@ -3,17 +3,18 @@
 package cfg
 
 import (
-    "errors"
-    "fmt"
-    rand "math/rand"
-    "reflect"
-    "sort"
-    "time"
+	"errors"
+	"fmt"
+	rand "math/rand"
+	"reflect"
+	"sort"
+	"time"
 
-    consul "github.com/hashicorp/consul/api"
-    "database/sql"
-    _ "github.com/go-sql-driver/mysql"
-    "go.uber.org/zap"
+	"database/sql"
+
+	_ "github.com/go-sql-driver/mysql"
+	consul "github.com/hashicorp/consul/api"
+	"go.uber.org/zap"
 )
 
 // ErrorNotFound signifies absence of SSO configuration
@@ -101,7 +102,7 @@ func (c *CfgMgr) GetKeystonePassword(serviceName string) (string, error) {
 	return password, nil
 }
 
-//  AddKeystoneUser
+// AddKeystoneUser
 func (c *CfgMgr) AddKeystoneUser(serviceName string) error {
 	zap.L().Debug("Creating keystone user for serviceName ", zap.String("serviceName", serviceName))
 
@@ -151,146 +152,153 @@ func (c *CfgMgr) getValue(key string) (string, error) {
 	return "", fmt.Errorf("Key value for key %s not found", key)
 }
 
-func (c * CfgMgr) GetRandomPassword() string {
-    rand.Seed(time.Now().UnixNano())
-    digits := "0123456789"
-    lowerChars := "abcdefghijklmnopqrstuvwxyz"
-    upperChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    allChars := lowerChars + upperChars + digits
-    const max = 16
-    out := make([]byte, max)
-    for i := 0; i < max; i++ {
-        out[i] = allChars[rand.Intn(len(allChars))]
-    }
-    return string(out)
+func (c *CfgMgr) GetRandomPassword() string {
+	rand.Seed(time.Now().UnixNano())
+	digits := "0123456789"
+	lowerChars := "abcdefghijklmnopqrstuvwxyz"
+	upperChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	allChars := lowerChars + upperChars + digits
+	const max = 16
+	out := make([]byte, max)
+	for i := 0; i < max; i++ {
+		out[i] = allChars[rand.Intn(len(allChars))]
+	}
+	return string(out)
 }
 
 func (c *CfgMgr) CreateDB(serviceName, userName string) (updateConsul bool, err error) {
-    dbObject, err := c.getDbObject()
-    if err != nil {
-        return false, err
-    }
+	dbObject, err := c.getDbObject()
+	if err != nil {
+		return false, err
+	}
 
-    zap.L().Debug("Creating DB for serviceName ", zap.String("serviceName", serviceName))
-    _, err = dbObject.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", serviceName))
-    if err != nil {
-        zap.L().Error("Error while creating database", zap.Error(err))
-        return false, err
-    }
-    zap.L().Info(fmt.Sprintf("Created DB '%s' successfully", serviceName))
-    return true, nil
+	zap.L().Debug("Creating DB for serviceName ", zap.String("serviceName", serviceName))
+	_, err = dbObject.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", serviceName))
+	if err != nil {
+		zap.L().Error("Error while creating database", zap.Error(err))
+		return false, err
+	}
+	zap.L().Info(fmt.Sprintf("Created DB '%s' successfully", serviceName))
+	return true, nil
 }
 
 func (c *CfgMgr) CreateGrants(dbName, userName, dbPassword string) (bool, error) {
-    dbObject, err := c.getDbObject()
-    if err != nil {
-        return false, err
-    }
-    rows, err := dbObject.Query("SELECT @@hostname")
-    if err != nil {
-        zap.L().Error("Error while getting hostname", zap.Error(err))
-        return false, err
-    }
-    defer rows.Close()
-    var hostname string
-    count := 0
-    for rows.Next() {
-        _ = rows.Scan(&hostname)
-    }
-    hosts := []string{"localhost", "%", hostname}
-    for _, hostName := range hosts {
-        before_grants := c.getGrants(userName, hostName, dbObject)
-        query := fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s' IDENTIFIED BY '%s'",
-                             dbName, userName, hostName, dbPassword)
-        _, _ = dbObject.Exec(query)
-        after_grants := c.getGrants(userName, hostName, dbObject)
-        if (reflect.DeepEqual(before_grants, after_grants)) {
-            count += 1
-        }
-    }
-    if count == len(hosts) {
-        return false, nil
-    } else {
-        return true, nil
-    }
+	dbObject, err := c.getDbObject()
+	if err != nil {
+		return false, err
+	}
+	rows, err := dbObject.Query("SELECT @@hostname")
+	if err != nil {
+		zap.L().Error("Error while getting hostname", zap.Error(err))
+		return false, err
+	}
+	defer rows.Close()
+	var hostname string
+	count := 0
+	for rows.Next() {
+		_ = rows.Scan(&hostname)
+	}
+	hosts := []string{"localhost", "%", hostname}
+	for _, hostName := range hosts {
+		before_grants := c.getGrants(userName, hostName, dbObject)
+
+		createUserQuery := "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY ?"
+		_, err = dbObject.Exec(createUserQuery, userName, hostName, dbPassword)
+
+		grantQuery := fmt.Sprintf("GRANT ALL PRIVILEGES ON `%s`.* TO ?@?", dbName)
+		_, err = dbObject.Exec(grantQuery, userName, hostName)
+
+		// query := fmt.Sprintf("GRANT ALL PRIVILEGES ON %s.* TO '%s'@'%s' IDENTIFIED BY '%s'",
+		//                      dbName, userName, hostName, dbPassword)
+		// _, _ = dbObject.Exec(query)
+		after_grants := c.getGrants(userName, hostName, dbObject)
+		if reflect.DeepEqual(before_grants, after_grants) {
+			count += 1
+		}
+	}
+	if count == len(hosts) {
+		return false, nil
+	} else {
+		return true, nil
+	}
 }
 
 func (c *CfgMgr) getDbDetails() (string, string, string, string, error) {
-    dbserver, err := c.getValue(fmt.Sprintf("%s/keystone/dbserver_key", c.CustomerKeyPrefix))
-    if err != nil {
-        zap.L().Error("Cannot get dbserver_key from consul store", zap.Error(err))
-        return "", "", "", "", err
-    }
-    host, err := c.getValue(fmt.Sprintf("%s/host", dbserver))
-    if err != nil {
-        zap.L().Error("Cannot get host key from consul store", zap.Error(err))
-        return "", "", "", "", err
-    }
-    port, err := c.getValue(fmt.Sprintf("%s/port", dbserver))
-    if err != nil {
-        zap.L().Error("Cannot get port key from consul store", zap.Error(err))
-        return "", "", "", "", err
-    }
-    adminUser, err := c.getValue(fmt.Sprintf("%s/admin_user", dbserver))
-    if err != nil {
-        zap.L().Error("Cannot get admin_user key from consul store", zap.Error(err))
-        return "", "", "", "", err
-    }
-    adminPass, err := c.getValue(fmt.Sprintf("%s/admin_pass", dbserver))
-    if err != nil {
-        zap.L().Error("Cannot get admin_pass key from consul store", zap.Error(err))
-        return "", "", "", "", err
-    }
-    return host, port, adminUser, adminPass, nil
+	dbserver, err := c.getValue(fmt.Sprintf("%s/keystone/dbserver_key", c.CustomerKeyPrefix))
+	if err != nil {
+		zap.L().Error("Cannot get dbserver_key from consul store", zap.Error(err))
+		return "", "", "", "", err
+	}
+	host, err := c.getValue(fmt.Sprintf("%s/host", dbserver))
+	if err != nil {
+		zap.L().Error("Cannot get host key from consul store", zap.Error(err))
+		return "", "", "", "", err
+	}
+	port, err := c.getValue(fmt.Sprintf("%s/port", dbserver))
+	if err != nil {
+		zap.L().Error("Cannot get port key from consul store", zap.Error(err))
+		return "", "", "", "", err
+	}
+	adminUser, err := c.getValue(fmt.Sprintf("%s/admin_user", dbserver))
+	if err != nil {
+		zap.L().Error("Cannot get admin_user key from consul store", zap.Error(err))
+		return "", "", "", "", err
+	}
+	adminPass, err := c.getValue(fmt.Sprintf("%s/admin_pass", dbserver))
+	if err != nil {
+		zap.L().Error("Cannot get admin_pass key from consul store", zap.Error(err))
+		return "", "", "", "", err
+	}
+	return host, port, adminUser, adminPass, nil
 }
 
 func (c *CfgMgr) getDbObject() (*sql.DB, error) {
-    host, port, adminUser, adminPass, err := c.getDbDetails()
-    if err != nil {
-        return nil, err
-    }
-    dbObject, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/", adminUser, adminPass, host, port))
-    if err != nil {
-        zap.L().Error("Can't connect to MySQL", zap.Error(err))
-        return nil, err
-    }
-    return dbObject, nil
+	host, port, adminUser, adminPass, err := c.getDbDetails()
+	if err != nil {
+		return nil, err
+	}
+	dbObject, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/", adminUser, adminPass, host, port))
+	if err != nil {
+		zap.L().Error("Can't connect to MySQL", zap.Error(err))
+		return nil, err
+	}
+	return dbObject, nil
 }
 
 func (c *CfgMgr) UpdateConsul(serviceName, userName, dbPassword string) error {
-    host, port, _, _, err := c.getDbDetails()
-    if err != nil {
-        return err
-    }
-    dbPrefix := fmt.Sprintf("%s/%s/db", c.CustomerKeyPrefix, serviceName)
-    ops := consul.KVTxnOps{
-        &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/name", dbPrefix), Value: []byte(serviceName)},
-        &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/password", dbPrefix), Value: []byte(dbPassword)},
-        &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/user", dbPrefix), Value: []byte(userName)},
-        &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/host", dbPrefix), Value: []byte(host)},
-        &consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/port", dbPrefix), Value: []byte(port)},
-    }
-    _, _, _, err = c.ConsulKV.Txn(ops, nil)
-    if err != nil {
-        zap.L().Error("Can't write db config to Consul", zap.Error(err))
-        return err
-    }
-    return nil
+	host, port, _, _, err := c.getDbDetails()
+	if err != nil {
+		return err
+	}
+	dbPrefix := fmt.Sprintf("%s/%s/db", c.CustomerKeyPrefix, serviceName)
+	ops := consul.KVTxnOps{
+		&consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/name", dbPrefix), Value: []byte(serviceName)},
+		&consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/password", dbPrefix), Value: []byte(dbPassword)},
+		&consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/user", dbPrefix), Value: []byte(userName)},
+		&consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/host", dbPrefix), Value: []byte(host)},
+		&consul.KVTxnOp{Verb: consul.KVSet, Key: fmt.Sprintf("%s/port", dbPrefix), Value: []byte(port)},
+	}
+	_, _, _, err = c.ConsulKV.Txn(ops, nil)
+	if err != nil {
+		zap.L().Error("Can't write db config to Consul", zap.Error(err))
+		return err
+	}
+	return nil
 }
 
 func (c *CfgMgr) getGrants(userName, host string, dbObject *sql.DB) []string {
-    var grants []string
-    var field string
-    rows, err := dbObject.Query(fmt.Sprintf("SHOW GRANTS FOR %s@%s", userName, host))
-    if err != nil {
-        zap.L().Error("Error while getting grants for user")
-        return grants
-    }
-    defer rows.Close()
-    for rows.Next() {
-        _ = rows.Scan(&field)
-    }
-    grants = append(grants, field)
-    sort.Strings(grants)
-    return grants
+	var grants []string
+	var field string
+	rows, err := dbObject.Query(fmt.Sprintf("SHOW GRANTS FOR %s@%s", userName, host))
+	if err != nil {
+		zap.L().Error("Error while getting grants for user")
+		return grants
+	}
+	defer rows.Close()
+	for rows.Next() {
+		_ = rows.Scan(&field)
+	}
+	grants = append(grants, field)
+	sort.Strings(grants)
+	return grants
 }
