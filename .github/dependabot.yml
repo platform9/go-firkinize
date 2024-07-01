@@ -7,5 +7,13 @@ version: 2
 updates:
   - package-ecosystem: "gomod" # See documentation for possible values
     directory: "/" # Location of package manifests
+    labels:
+      - "area/dependencies"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    labels:
+      - "area/dependencies"
     schedule:
       interval: "weekly"

@@ -5,9 +5,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"fmt"
 )
-
 
 func init() {
 	getKeystoneCmd.PersistentFlags().StringVar(&serviceName, "service-name", "", "Name of the service (example qbert)")
@@ -18,7 +16,7 @@ func init() {
 var getKeystoneCmd = &cobra.Command{
 	Use:   "get-keystone",
 	Short: "Get Keystone related attributes",
-	Long: `Get Keystone related attributes`,
+	Long:  `Get Keystone related attributes`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfgMgr := GetCfg()
 		zap.L().Debug("Get keystone password")
@@ -27,7 +25,10 @@ var getKeystoneCmd = &cobra.Command{
 			zap.L().Info("Error getting keystone password")
 			return err
 		}
-		fmt.Println(password)
+		// Do not print password
+		// It causes a security alert
+		// Clear-text logging of sensitive information
+		// fmt.Println(password)
 		return nil
 	},
 }
