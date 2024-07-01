@@ -5,7 +5,7 @@ go 1.22.1
 require (
 	github.com/go-sql-driver/mysql v1.8.0
 	github.com/hashicorp/consul/api v1.28.2
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	go.uber.org/zap v1.27.0
 )
 
