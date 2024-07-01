@@ -20,7 +20,7 @@ var getKeystoneCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfgMgr := GetCfg()
 		zap.L().Debug("Get keystone password")
-		password, err := cfgMgr.GetKeystonePassword(serviceName)
+		_, err := cfgMgr.GetKeystonePassword(serviceName)
 		if err != nil {
 			zap.L().Info("Error getting keystone password")
 			return err
