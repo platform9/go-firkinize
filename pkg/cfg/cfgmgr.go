@@ -298,7 +298,7 @@ func (c *CfgMgr) UpdateConsul(serviceName, userName, dbPassword string) error {
 func (c *CfgMgr) getGrants(userName, host string, dbObject *sql.DB) []string {
 	var grants []string
 	var field string
-	rows, err := dbObject.Query(fmt.Sprintf("SHOW GRANTS FOR %s@%s", userName, host))
+	rows, err := dbObject.Query("SHOW GRANTS FOR '" + userName + "'@'" + host + "'")
 	if err != nil {
 		zap.L().Error("Error while getting grants for user")
 		return grants
