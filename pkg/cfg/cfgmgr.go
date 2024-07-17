@@ -202,16 +202,15 @@ func (c *CfgMgr) CreateGrants(dbName, userName, dbPassword string) (bool, error)
 	for _, hostName := range hosts {
 		before_grants := c.getGrants(userName, hostName, dbObject)
 
-		createUserQuery := "CREATE USER IF NOT EXISTS ?@? IDENTIFIED BY ?"
-		_, err = dbObject.Exec(createUserQuery, userName, hostName, dbPassword)
-		fmt.Println(userName)
+		createUserQuery := "CREATE USER IF NOT EXISTS '" + userName + "'@'" + hostName + "' IDENTIFIED BY '" + dbPassword + "'"
+		_, err = dbObject.Exec(createUserQuery)
 		if err != nil {
 			// Handle the error
 			fmt.Println("Error creating user:", err)
 		}
 
-		grantQuery := fmt.Sprintf("GRANT ALL PRIVILEGES ON `%s`.* TO ?@?", dbName)
-		_, err = dbObject.Exec(grantQuery, userName, hostName)
+		grantPrivilegesQuery := "GRANT ALL PRIVILEGES ON *.* TO '" + userName + "'@'" + hostName + "'"
+		_, err = dbObject.Exec(grantPrivilegesQuery)
 
 		if err != nil {
 			// Handle the error
