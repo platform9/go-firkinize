@@ -209,7 +209,7 @@ func (c *CfgMgr) CreateGrants(dbName, userName, dbPassword string) (bool, error)
 			fmt.Println("Error creating user:", err)
 		}
 
-		grantPrivilegesQuery := "GRANT ALL PRIVILEGES ON *.* TO '" + userName + "'@'" + hostName + "'"
+		grantPrivilegesQuery := "GRANT ALL PRIVILEGES ON `" + dbName + "`.* TO '" + userName + "'@'" + hostName + "'"
 		_, err = dbObject.Exec(grantPrivilegesQuery)
 
 		if err != nil {
