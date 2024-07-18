@@ -210,6 +210,7 @@ func (c *CfgMgr) CreateGrants(dbName, userName, dbPassword string) (bool, error)
 		}
 
 		grantPrivilegesQuery := "GRANT ALL PRIVILEGES ON `" + dbName + "`.* TO '" + userName + "'@'" + hostName + "'"
+		fmt.Println("Grating privileges to %s@%s on DB %s", userName, hostName, dbName)
 		_, err = dbObject.Exec(grantPrivilegesQuery)
 
 		if err != nil {
