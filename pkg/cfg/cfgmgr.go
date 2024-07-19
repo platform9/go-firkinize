@@ -5,6 +5,7 @@ package cfg
 import (
 	"errors"
 	"fmt"
+	"log"
 	rand "math/rand"
 	"reflect"
 	"sort"
@@ -202,12 +203,36 @@ func (c *CfgMgr) CreateGrants(dbName, userName, dbPassword string) (bool, error)
 	for _, hostName := range hosts {
 		before_grants := c.getGrants(userName, hostName, dbObject)
 
-		createUserQuery := "CREATE USER IF NOT EXISTS '" + userName + "'@'" + hostName + "' IDENTIFIED BY '" + dbPassword + "'"
-		fmt.Println("Creating user %s@%s using password %s", userName, hostName, dbPassword)
-		_, err = dbObject.Exec(createUserQuery)
+		// createUserQuery := "CREATE USER IF NOT EXISTS '" + userName + "'@'" + hostName + "' IDENTIFIED BY '" + dbPassword + "'"
+		// fmt.Println("Creating user %s@%s using password %s", userName, hostName, dbPassword)
+		// _, err = dbObject.Exec(createUserQuery)
+		// if err != nil {
+		// 	// Handle the error
+		// 	fmt.Println("Error creating user:", err)
+		// }
+		var exists bool
+		query := "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = ? AND host = ?)"
+		err := dbObject.QueryRow(query, userName, hostName).Scan(&exists)
 		if err != nil {
-			// Handle the error
-			fmt.Println("Error creating user:", err)
+			log.Fatalf("Error checking if user exists: %v", err)
+		}
+
+		if exists {
+			// Update the password if the user exists
+			updatePasswordQuery := "ALTER USER '" + userName + "'@'" + hostName + "' IDENTIFIED BY '" + dbPassword + "'"
+			_, err := dbObject.Exec(updatePasswordQuery)
+			if err != nil {
+				log.Fatalf("Error updating user password: %v", err)
+			}
+			fmt.Printf("Password for user '%s'@'%s' updated successfully.\n", userName, hostName)
+		} else {
+			// Create the user if it does not exist
+			createUserQuery := "CREATE USER '" + userName + "'@'" + hostName + "' IDENTIFIED BY '" + dbPassword + "'"
+			_, err := dbObject.Exec(createUserQuery)
+			if err != nil {
+				log.Fatalf("Error creating user: %v", err)
+			}
+			fmt.Printf("User '%s'@'%s' created successfully.\n", userName, hostName)
 		}
 
 		grantPrivilegesQuery := "GRANT ALL PRIVILEGES ON `" + dbName + "`.* TO '" + userName + "'@'" + hostName + "'"
@@ -301,10 +326,10 @@ func (c *CfgMgr) getGrants(userName, host string, dbObject *sql.DB) []string {
 	var grants []string
 	var field string
 	rows, err := dbObject.Query(fmt.Sprintf("SHOW GRANTS FOR '%s'@'%s'", userName, host))
-    if err != nil {
-        zap.L().Error("Error while getting grants for user", zap.Error(err))
-        return grants
-    }
+	if err != nil {
+		zap.L().Error("Error while getting grants for user", zap.Error(err))
+		return grants
+	}
 	defer rows.Close()
 	for rows.Next() {
 		_ = rows.Scan(&field)
