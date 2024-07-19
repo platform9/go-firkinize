@@ -203,6 +203,7 @@ func (c *CfgMgr) CreateGrants(dbName, userName, dbPassword string) (bool, error)
 		before_grants := c.getGrants(userName, hostName, dbObject)
 
 		createUserQuery := "CREATE USER IF NOT EXISTS '" + userName + "'@'" + hostName + "' IDENTIFIED BY '" + dbPassword + "'"
+		fmt.Println("Creating user %s@%s using password %s", userName, hostName, dbPassword)
 		_, err = dbObject.Exec(createUserQuery)
 		if err != nil {
 			// Handle the error
