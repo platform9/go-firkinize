@@ -203,13 +203,6 @@ func (c *CfgMgr) CreateGrants(dbName, userName, dbPassword string) (bool, error)
 	for _, hostName := range hosts {
 		before_grants := c.getGrants(userName, hostName, dbObject)
 
-		// createUserQuery := "CREATE USER IF NOT EXISTS '" + userName + "'@'" + hostName + "' IDENTIFIED BY '" + dbPassword + "'"
-		// fmt.Println("Creating user %s@%s using password %s", userName, hostName, dbPassword)
-		// _, err = dbObject.Exec(createUserQuery)
-		// if err != nil {
-		// 	// Handle the error
-		// 	fmt.Println("Error creating user:", err)
-		// }
 		var exists bool
 		query := "SELECT EXISTS(SELECT 1 FROM mysql.user WHERE user = ? AND host = ?)"
 		err := dbObject.QueryRow(query, userName, hostName).Scan(&exists)
@@ -224,7 +217,6 @@ func (c *CfgMgr) CreateGrants(dbName, userName, dbPassword string) (bool, error)
 			if err != nil {
 				log.Fatalf("Error updating user password: %v", err)
 			}
-			fmt.Printf("Password for user '%s'@'%s' updated successfully.\n", userName, hostName)
 		} else {
 			// Create the user if it does not exist
 			createUserQuery := "CREATE USER '" + userName + "'@'" + hostName + "' IDENTIFIED BY '" + dbPassword + "'"
@@ -236,7 +228,6 @@ func (c *CfgMgr) CreateGrants(dbName, userName, dbPassword string) (bool, error)
 		}
 
 		grantPrivilegesQuery := "GRANT ALL PRIVILEGES ON `" + dbName + "`.* TO '" + userName + "'@'" + hostName + "'"
-		fmt.Println("Grating privileges to %s@%s on DB %s", userName, hostName, dbName)
 		_, err = dbObject.Exec(grantPrivilegesQuery)
 
 		if err != nil {
