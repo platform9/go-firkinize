@@ -1,10 +1,12 @@
 
+# go-firkinize
+
 ![Go](https://github.com/roopakparikh/go-firkinize/workflows/Go/badge.svg)
 
-# go-firkinize
 A go version of firkinize library, also available as a binary that can be used for easy scripting
 
 # Scripting use case
+
 Download the appropriate version of the go-firkinize cli from the github release page
 
 There are only two subcommands avaialble today, more can be added later on.
@@ -13,7 +15,7 @@ There are only two subcommands avaialble today, more can be added later on.
 * add-keystone: will add entries for a service in the keystone service catalog but also would create user/password for the service. Password is randomly generated and user name is the name of the service itself.
 * create-db: will create database for a service
 
-```
+```shell
 ./go-firkinize
 A simple utility that hides the complexity associated with Platform9
     config store i.e. consul/vault as of today.
@@ -43,7 +45,7 @@ Firkinize will let you add keystone service endpoints and will also let you quer
 
 The CLI takes a lot of parameter, but in deccaxon environment, they are picked up from the corresponding environment variables so in practice you don't need to supply them you can simply do the following:
 
-```
+```shell
 ./go-firkinize get-keystone --service-name hagrid
 asdfasdfasdf
 ```
