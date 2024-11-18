@@ -256,7 +256,7 @@ func (c *CfgMgr) getDbDetails() (string, string, string, string, error) {
 		zap.L().Error("Cannot get dbserver_key from consul store", zap.Error(err))
 		return "", "", "", "", err
 	}
-	host, err := c.getValue(fmt.Sprintf("%s/host", dbserver))
+        host, err := c.getValue(fmt.Sprintf("%s/dbservers/%s/db_backend", c.CustomerKeyPrefix, dbserver))
 	if err != nil {
 		zap.L().Error("Cannot get host key from consul store", zap.Error(err))
 		return "", "", "", "", err
